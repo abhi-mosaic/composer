@@ -20,7 +20,7 @@ from composer.core.types import Precision
 from composer.datasets import DataloaderHparams
 from composer.loggers import (BaseLoggerBackendHparams, FileLoggerBackendHparams, TQDMLoggerBackendHparams,
                               WandBLoggerBackendHparams)
-from composer.models import (CIFARResNetHparams, EfficientNetB0Hparams, GPT2Hparams, MnistClassifierHparams,
+from composer.models import (CIFARResNetHparams, EfficientNetB0Hparams, GPT2Hparams, BERTHparams, MnistClassifierHparams,
                              ModelHparams, ResNet18Hparams, ResNet50Hparams, ResNet101Hparams, UnetHparams)
 from composer.optim import (AdamHparams, AdamWHparams, DecoupledAdamWHparams, DecoupledSGDWHparams, OptimizerHparams,
                             RAdamHparams, RMSPropHparams, SchedulerHparams, SGDHparams, scheduler)
@@ -59,6 +59,7 @@ model_registry = {
     "resnet18": ResNet18Hparams,
     "mnist_classifier": MnistClassifierHparams,
     "gpt2": GPT2Hparams,
+    "bert": BERTHparams,
 }
 
 dataset_registry = {

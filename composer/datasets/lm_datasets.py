@@ -1,5 +1,3 @@
-# Copyright 2021 MosaicML. All Rights Reserved.
-
 import logging
 import tempfile
 from dataclasses import dataclass
@@ -26,13 +24,16 @@ def _split_dict_fn(batch: Batch, n_microbatches: int) -> List[Batch]:
 @dataclass
 class LMDatasetHparams(DatasetHparams):
     """
-    Defines a generic dataset class for autoregressive language models.
+    Defines a generic dataset class for autoregressive and masked language models.
     """
 
     datadir: List[str] = hp.required("Path to the Huggingface Datasets directory.")
     split: str = hp.required("Whether to use 'train', 'validation' or 'test' split.")
     tokenizer_name: str = hp.required("The name of the tokenizer to preprocess text with.")
+    use_masked_lm: bool = hp.required("Whether the dataset shoud be encoded with masked language modeling or not.")
     num_tokens: int = hp.optional(doc='If desired, the number of tokens to truncate the dataset to.', default=0)
+    mlm_probability: float = hp.optional("If using masked language modeling, the probability to mask tokens with.",
+                                         default=0.15)
     seed: int = hp.optional("Which seed to use to generate train and validation splits.", default=5)
     subsample_ratio: float = hp.optional(default=1.0, doc='If desired, the percentage of the dataset to use.')
     train_sequence_length: int = hp.optional(
@@ -41,6 +42,20 @@ class LMDatasetHparams(DatasetHparams):
         default=1024, doc='Optionally, the ability to set a custom sequence length for the validation dataset.')
     shuffle: bool = hp.optional("Whether to shuffle the dataset for each epoch.", default=True)
     drop_last: bool = hp.optional("Whether to drop the last samples for the last batch.", default=False)
+
+    def validate(self):
+        # TODO (Moin): this re-loads a large dataset into memory three times -- can the REng team permit
+        # returning a dataloader for a particular split?
+        if self.split not in ['train', 'validation', 'test']:
+            raise ValueError("The dataset split must be one of 'train', 'validation', or 'test'.")
+
+        if self.use_masked_lm:
+            if self.mlm_probability <= 0.0:
+                raise ValueError(
+                    "If using Masked Language Modeling, you must replace tokens with a non-zero probability.")
+
+        if self.num_tokens > 0 and self.subsample_ratio < 1.0:
+            raise Exception("Must specify one of num_tokens OR subsample_ratio, cannot specify both.")
 
     def initialize_object(self) -> DataloaderSpec:
         try:
@@ -53,7 +68,8 @@ class LMDatasetHparams(DatasetHparams):
         self.config = transformers.AutoConfig.from_pretrained(self.tokenizer_name)  #type: ignore (thirdparty)
         lm_datasets = [datasets.load_from_disk(i) for i in self.datadir]  #type: ignore (thirdparty)
 
-        # TODO: this re-loads a large dataset into memory three times
+        # TODO (Moin): this re-loads a large dataset into memory three times -- can the REng team permit
+        # returning a dataloader for a particular split?
         if self.split not in ['train', 'validation', 'test']:
             raise ValueError("The dataset split must be one of 'train', 'validation', or 'test'.")
 
@@ -86,6 +102,9 @@ class LMDatasetHparams(DatasetHparams):
         elif self.subsample_ratio < 1.0:
             num_samples = round(total_num_samples * self.subsample_ratio)
             self.num_tokens = num_samples * tokens_per_sample
+        # TODO (Moin): think through these edge cases a little more
+        elif self.subsample_ratio==1.0 and self.num_tokens==0:
+            self.num_tokens = total_num_tokens
         else:
             log.warning("No subsampling going on!")
 
@@ -96,7 +115,9 @@ class LMDatasetHparams(DatasetHparams):
         log.info(f"Total number of tokens: {self.num_tokens:e}")
         self.dataset = lm_datasets
 
-        self.data_collator = transformers.default_data_collator
+        self.data_collator = transformers.DataCollatorForLanguageModeling(tokenizer=self.tokenizer,
+                                                                          mlm=self.use_masked_lm,
+                                                                          mlm_probability=self.mlm_probability)
 
         return DataloaderSpec(
             dataset=self.dataset,  #type: ignore (thirdparty)
