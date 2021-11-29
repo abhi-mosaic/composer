@@ -69,6 +69,7 @@ dataset_registry = {
     "synthetic": datasets.SyntheticDatasetHparams,
     "mnist": datasets.MNISTDatasetHparams,
     "lm": datasets.LMDatasetHparams,
+    "streaming_lm": datasets.StreamingLMDatasetHparams,
 }
 
 algorithms_registry = get_algorithm_registry()
