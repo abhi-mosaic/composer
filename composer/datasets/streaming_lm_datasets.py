@@ -94,10 +94,11 @@ class StreamingLMDatasetHparams(DatasetHparams):
         def tokenize_function(examples):
             return self.tokenizer(examples[text_column_name])
 
+        batch_size = 1000
         self.dataset = self.dataset.map(
             tokenize_function,
             batched=True,
-            batch_size=1000,
+            batch_size=batch_size,
         )
 
         block_size = 1024
@@ -107,6 +108,7 @@ class StreamingLMDatasetHparams(DatasetHparams):
         block_size = min(block_size, self.tokenizer.model_max_length)
 
         # Main data processing function that will concatenate all texts from our dataset and generate chunks of block_size.
+        batch_size = 100
         def group_texts(examples):
             # Concatenate all texts.
             concatenated_examples = {}
@@ -133,7 +135,7 @@ class StreamingLMDatasetHparams(DatasetHparams):
         # To speed up this part, we use multiprocessing. See the documentation of the map method for more information:
         # https://huggingface.co/docs/datasets/package_reference/main_classes.html#datasets.Dataset.map
 
-        self.dataset = self.dataset.map(group_texts, batched=True, batch_size=1000)
+        self.dataset = self.dataset.map(group_texts, batched=True, batch_size=batch_size)
 
         self.dataset = SizedIterableDataset(self.dataset)
         # self.data_collator = transformers.DataCollatorForLanguageModeling(tokenizer=self.tokenizer,
@@ -158,7 +160,7 @@ class SizedIterableDataset(datasets.IterableDataset):
         self.dataset = iter(dataset)
 
     def __len__(self):
-        return int(1e3 * 704)
+        return int(1e3 * 512)
 
     def __iter__(self):
         return iter(self.dataset)

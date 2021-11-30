@@ -115,9 +115,10 @@ class LMDatasetHparams(DatasetHparams):
         log.info(f"Total number of tokens: {self.num_tokens:e}")
         self.dataset = lm_datasets
 
-        self.data_collator = transformers.DataCollatorForLanguageModeling(tokenizer=self.tokenizer,
-                                                                          mlm=self.use_masked_lm,
-                                                                          mlm_probability=self.mlm_probability)
+        self.data_collator = transformers.data.data_collator.default_data_collator
+        # self.data_collator = transformers.DataCollatorForLanguageModeling(tokenizer=self.tokenizer,
+                                                                          # mlm=self.use_masked_lm,
+                                                                          # mlm_probability=self.mlm_probability)
 
         return DataloaderSpec(
             dataset=self.dataset,  #type: ignore (thirdparty)
