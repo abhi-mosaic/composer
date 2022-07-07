@@ -773,6 +773,17 @@ class Trainer:
         _validate_precision(precision, self._device, deepspeed_enabled)
 
         # Optimizers and Schedulers
+        # self._original_model = model
+
+        # move to device and wrap here
+        model = self._device.module_to_device(model)
+
+        if dist.get_world_size() > 1:
+            # Only wrap the module if required
+            model = prepare_ddp_module(model, False) # false right now to make it happy
+
+        self._original_model = model
+
         if not optimizers:
             optimizers = DecoupledSGDW(list(model.parameters()), lr=0.1)
             # hard-coding the optimizer in the warning, as repr(optimizers) would print an annoying, multi-line warning
@@ -902,8 +913,7 @@ class Trainer:
 
         self.logger.data_fit({'rank_zero_seed': rank_zero_seed})
 
-        assert isinstance(self.state.model, ComposerModel)
-        self._original_model = self.state.model
+        #assert isinstance(self.state.model, ComposerModel)
 
         # Schedulers
         self.state.schedulers = _compile_schedulers(schedulers, self.state, scale_schedule_ratio)
@@ -1013,6 +1023,10 @@ class Trainer:
             else:
                 log.info('No previous autoresume checkpoint found')
         # Actually load the checkpoint from potentially updated arguments
+        print("Model: ")
+        print(self.state.model)
+        print("Optimizers: ")
+        print(self.state.optimizers)
         if load_path is not None:
             self._rng_state = load_checkpoint(
                 state=self.state,
@@ -1033,10 +1047,10 @@ class Trainer:
         log.info(f'Setting seed to {self.state.seed}')
         reproducibility.seed_all(self.state.seed)
 
-        # Move the model and optimizers to the specified device
-        if not self.deepspeed_enabled and dist.get_world_size() > 1:
-            # Only wrap the module if required
-            self.state.model = prepare_ddp_module(self.state.model, self._find_unused_parameters)
+        # # Move the model and optimizers to the specified device
+        # if not self.deepspeed_enabled and dist.get_world_size() > 1:
+        #     # Only wrap the module if required
+        #     self.state.model = prepare_ddp_module(self.state.model, self._find_unused_parameters)
 
     @property
     def deepspeed_enabled(self):
@@ -2064,7 +2078,8 @@ class Trainer:
                 self.engine.run_event(Event.EVAL_BATCH_START)
 
                 self.engine.run_event(Event.EVAL_BEFORE_FORWARD)
-                self.state.outputs, targets = self._original_model.validate(self.state.batch)
+                print (self.state.batch)
+                self.state.outputs, targets = self.state.model.validate(self.state.batch)
                 self.engine.run_event(Event.EVAL_AFTER_FORWARD)
 
                 metrics.update(self.state.outputs, targets)
