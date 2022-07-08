@@ -110,6 +110,7 @@ def prepare_ddp_module(module: torch.nn.Module, find_unused_parameters: bool) ->
         if any((p.requires_grad for p in module.parameters())):
             log.debug('Wrapping model with DistributedDataParallel')
             # ddp_model = DistributedDataParallel(module, find_unused_parameters=find_unused_parameters)
+            print("INITIALIZING FSDP!")
             ddp_model = FSDP(module)
             return ddp_model
         return module
