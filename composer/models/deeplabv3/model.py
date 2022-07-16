@@ -77,12 +77,13 @@ def deeplabv3(num_classes: int,
     if not hasattr(resnet, backbone_arch):
         raise ValueError(f'backbone_arch must be part of the torchvision resnet module, got value: {backbone_arch}')
 
-    # change the model weight url if specified
-    if backbone_url:
-        resnet.model_urls[backbone_arch] = backbone_url
+
 
     # build the backbone
-    if version.parse(torchvision.__version__) >= '0.13.0':
+    if version.parse(torchvision.__version__) < '0.13.0':
+        # change the model weight url if specified
+        if backbone_url:
+            resnet.model_urls[backbone_arch] = backbone_url
         backbone_kwargs = {
             'pretrained': is_backbone_pretrained,
             'replace_stride_with_dilation': [False, True, True],
