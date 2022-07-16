@@ -9,6 +9,8 @@ from typing import Sequence
 
 import torch
 import torch.nn.functional as F
+import torchvision
+from packaging import version
 from torchmetrics import MetricCollection
 from torchvision.models import _utils, resnet
 
@@ -78,8 +80,20 @@ def deeplabv3(num_classes: int,
     # change the model weight url if specified
     if backbone_url:
         resnet.model_urls[backbone_arch] = backbone_url
-    backbone = getattr(resnet, backbone_arch)(pretrained=is_backbone_pretrained,
-                                              replace_stride_with_dilation=[False, True, True])
+
+    # build the backbone
+    if version.parse(torchvision.__version__) >= '0.13.0':
+        backbone_kwargs = {
+            'pretrained': is_backbone_pretrained,
+            'replace_stride_with_dilation': [False, True, True],
+        }
+    else:
+        backbone_kwargs = {
+            'weights': 'IMAGENET1K_V1' if is_backbone_pretrained else None,
+            'replace_stride_with_dilation': [False, True, True],
+        }
+
+    backbone = getattr(resnet, backbone_arch)(**backbone_kwargs)
 
     # specify which layers to extract activations from
     return_layers = {'layer1': 'layer1', 'layer4': 'layer4'} if use_plus else {'layer4': 'layer4'}
