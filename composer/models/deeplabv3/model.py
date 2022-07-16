@@ -80,7 +80,7 @@ def deeplabv3(num_classes: int,
 
 
     # build the backbone
-    if version.parse(torchvision.__version__) < '0.13.0':
+    if version.parse(torchvision.__version__) < version.parse('0.13.0'):
         # change the model weight url if specified
         if backbone_url:
             resnet.model_urls[backbone_arch] = backbone_url
@@ -90,7 +90,7 @@ def deeplabv3(num_classes: int,
         }
     else:
         backbone_kwargs = {
-            'weights': 'IMAGENET1K_V1' if is_backbone_pretrained else None,
+            'weights': 'IMAGENET1K_V2' if is_backbone_pretrained else None,
             'replace_stride_with_dilation': [False, True, True],
         }
 
