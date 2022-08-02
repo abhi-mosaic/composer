@@ -11,10 +11,13 @@ import datetime
 import logging
 import os
 import warnings
+from functools import partial
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 import torch
 import yahp as hp
+from torch.distributed.fsdp import FullyShardedDataParallel, MixedPrecision, ShardingStrategy
+from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 from torchmetrics import Metric, MetricCollection
 
 import composer
@@ -28,8 +31,8 @@ from composer.datasets.evaluator_hparams import EvaluatorHparams
 from composer.loggers import LoggerDestination, LogLevel
 from composer.loggers.logger_hparams_registry import logger_registry
 from composer.models import (BERTForClassificationHparams, BERTHparams, DeepLabV3Hparams, EfficientNetB0Hparams,
-                             GPT2Hparams, MnistClassifierHparams, ModelHparams, ResNetCIFARHparams, ResNetHparams,
-                             SSDHparams, TimmHparams, UnetHparams, ViTSmallPatch16Hparams)
+                             GPT2Hparams, HuggingFaceModel, MnistClassifierHparams, ModelHparams, ResNetCIFARHparams,
+                             ResNetHparams, SSDHparams, TimmHparams, UnetHparams, ViTSmallPatch16Hparams)
 from composer.models.base import ComposerModel
 from composer.optim import ComposerScheduler
 from composer.optim.optimizer_hparams_registry import OptimizerHparams, optimizer_registry
@@ -280,6 +283,8 @@ class TrainerHparams(hp.Hparams):
 
     model: ModelHparams = hp.auto(Trainer, 'model')
 
+    fsdp: bool = hp.optional(doc='Whether to wrap the model with FSDP', default=False)
+
     # Shared data
     dataloader: DataLoaderHparams = hp.optional(doc='dataloader hparams', default=DataLoaderHparams())
 
@@ -446,6 +451,20 @@ class TrainerHparams(hp.Hparams):
 
         # The model
         model = self.model.initialize_object()
+
+        # Wrap the model with FSDP
+        if self.fsdp:
+            if self.precision == Precision.BF16:
+                mixed_precision = MixedPrecision(param_dtype=torch.float32,
+                                                 reduce_dtype=torch.bfloat16,
+                                                 buffer_dtype=torch.bfloat16)
+            model = FullyShardedDataParallel(model,
+                                             sharding_strategy=ShardingStrategy.FULL_SHARD,
+                                             auto_wrap_policy=partial(size_based_auto_wrap_policy,
+                                                                      min_num_params=int(1e6)),
+                                             cpu_offload=None,
+                                             mixed_precision=mixed_precision,
+                                             device_id=device._device)
 
         # Train dataloader
         train_dataloader = _initialize_dataloader(self.train_dataset, self.train_dataloader_label,

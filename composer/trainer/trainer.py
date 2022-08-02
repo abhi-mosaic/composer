@@ -20,6 +20,7 @@ import torch
 import torch.distributed
 import torch.utils.data
 from torch.cuda.amp.grad_scaler import GradScaler
+from torch.distributed.fsdp import FullyShardedDataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, DistributedSampler
 from torchmetrics import Metric, MetricCollection
@@ -744,6 +745,15 @@ class Trainer:
     ):
         algorithms = list(ensure_tuple(algorithms))
 
+        # Store reference to original model
+        if isinstance(model, FullyShardedDataParallel):
+            self._original_model = model._fsdp_wrapped_module._fpw_module
+            fsdp_enabled = True
+        else:
+            self._original_model = model
+            fsdp_enabled = False
+        assert isinstance(self._original_model, ComposerModel)
+
         # Determine whether DeepSpeed is enabled
         deepspeed_enabled = deepspeed_config is not None
 
@@ -774,7 +784,7 @@ class Trainer:
 
         # Optimizers and Schedulers
         if not optimizers:
-            optimizers = DecoupledSGDW(list(model.parameters()), lr=0.1)
+            optimizers = DecoupledSGDW(model.parameters(), lr=0.1)
             # hard-coding the optimizer in the warning, as repr(optimizers) would print an annoying, multi-line warning
             warnings.warn(('No optimizer was specified. Defaulting to '
                            f"{type(optimizers).__name__}(lr={optimizers.defaults['lr']})"))
@@ -784,7 +794,7 @@ class Trainer:
             raise NotImplementedError(f'Only one optimizer is supported; found {num_optimizers} optimizers')
 
         # Move the model and optimizers to the device
-        if not deepspeed_enabled:
+        if not deepspeed_enabled or fsdp_enabled:
             model = self._device.module_to_device(model)
             # Move any remaining optimizer parameters onto the device
             # It is possible that optimizer initialize created some internal tensors on CPU
@@ -880,7 +890,7 @@ class Trainer:
         self.engine = Engine(state=self.state, logger=self.logger)
 
         # Set the logger
-        model.logger = self.logger
+        self._original_model.logger = self.logger
 
         # Run Event.INIT
         self.engine.run_event(Event.INIT)
@@ -894,16 +904,13 @@ class Trainer:
             self.state.set_dataloader(self._train_data_spec.dataloader, train_dataloader_label,
                                       train_subset_num_batches)
             self.state.train_dataloader = self.state.dataloader
-        self.train_metrics = _get_training_metrics(model) if compute_training_metrics else None
+        self.train_metrics = _get_training_metrics(self._original_model) if compute_training_metrics else None
 
         # Max Duration
         if max_duration is not None:
             self.state.max_duration = ensure_time(max_duration, TimeUnit.EPOCH)
 
         self.logger.data_fit({'rank_zero_seed': rank_zero_seed})
-
-        assert isinstance(self.state.model, ComposerModel)
-        self._original_model = self.state.model
 
         # Schedulers
         self.state.schedulers = _compile_schedulers(schedulers, self.state, scale_schedule_ratio)
@@ -922,7 +929,8 @@ class Trainer:
             evaluators: List[Evaluator] = []
         else:
             evaluators = [
-                ensure_evaluator(evaluator, model.metrics(train=False)) for evaluator in ensure_tuple(eval_dataloader)
+                ensure_evaluator(evaluator, self._original_model.metrics(train=False))
+                for evaluator in ensure_tuple(eval_dataloader)
             ]
             _set_evaluator_interval_and_subset_num_batches(
                 evaluators=evaluators,
@@ -1034,7 +1042,7 @@ class Trainer:
         reproducibility.seed_all(self.state.seed)
 
         # Move the model and optimizers to the specified device
-        if not self.deepspeed_enabled and dist.get_world_size() > 1:
+        if not self.deepspeed_enabled and not fsdp_enabled and dist.get_world_size() > 1:
             # Only wrap the module if required
             self.state.model = prepare_ddp_module(self.state.model, self._find_unused_parameters)
 
@@ -1439,6 +1447,8 @@ class Trainer:
         # surpressing GradScaler warnings as they are always created
         # self._use_grad_scaling() will raise a RuntimeError if grad scaling is not available when it is required
         warnings.filterwarnings(action='ignore', message='torch.cuda.amp.GradScaler')
+        warnings.filterwarnings(action='ignore', message='Forward order differs from that of the first iteration')
+
         self.state.scaler = ClosureGradScaler() if self._use_closures() else GradScaler()
         use_grad_scaling = self._use_grad_scaling(self.state.precision, self.state.scaler)
 

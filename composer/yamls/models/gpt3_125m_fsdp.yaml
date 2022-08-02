@@ -1,0 +1,71 @@
+train_dataset:
+  streaming_c4:
+    remote: s3://allenai-c4/mds/1/
+    local: /tmp/mds-cache/mds-c4/
+    split: train
+    shuffle: true
+    tokenizer_name: gpt2
+    max_seq_len: 2048
+    group_method: truncate
+
+val_dataset:
+  streaming_c4:
+    remote: s3://allenai-c4/mds/1/
+    local: /tmp/mds-cache/mds-c4/
+    split: val
+    shuffle: false
+    tokenizer_name: gpt2
+    max_seq_len: 2048
+    group_method: truncate
+
+model:
+  gpt2:
+    use_pretrained: false
+    tokenizer_name: gpt2
+    gradient_checkpointing: false
+    model_config:
+      attn_pdrop: 0.0
+      embd_pdrop: 0.0
+      resid_pdrop: 0.0
+      summary_first_dropout: 0.0
+      initializer_range: 0.02
+      layer_norm_epsilon: 1.0e-05
+      n_embd: 768
+      n_head: 12
+      n_layer: 12
+      n_positions: 2048
+      use_cache: false
+optimizers:
+  decoupled_adamw:
+    lr: 1.2e-4
+    betas:
+      - 0.9
+      - 0.95
+    eps: 1.0e-08
+    weight_decay: 0.0
+schedulers:
+  - cosine_decay_with_warmup:
+      t_warmup: 0.01dur
+max_duration: 1ep
+train_batch_size: 256
+grad_accum: auto
+eval_batch_size: 32
+seed: 17
+dataloader:
+  pin_memory: true
+  persistent_workers: true
+  num_workers: 8
+  timeout: 0
+  prefetch_factor: 2
+algorithms:
+  gradient_clipping:
+    clipping_type: norm
+    clipping_threshold: 1.0
+eval_interval: 1000ba
+precision: bf16
+fsdp: true
+
+callbacks:
+  lr_monitor: {}
+  speed_monitor:
+    window_size: 1
