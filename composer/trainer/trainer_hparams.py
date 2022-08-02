@@ -454,14 +454,13 @@ class TrainerHparams(hp.Hparams):
 
         # Wrap the model with FSDP
         if self.fsdp:
-            if self.precision == Precision.BF16:
-                mixed_precision = MixedPrecision(param_dtype=torch.float32,
-                                                 reduce_dtype=torch.bfloat16,
-                                                 buffer_dtype=torch.bfloat16)
+            mixed_precision = MixedPrecision(param_dtype=torch.float32,
+                                             reduce_dtype=torch.float32,
+                                             buffer_dtype=torch.float32)
             model = FullyShardedDataParallel(model,
                                              sharding_strategy=ShardingStrategy.FULL_SHARD,
                                              auto_wrap_policy=partial(size_based_auto_wrap_policy,
-                                                                      min_num_params=int(1e6)),
+                                                                      min_num_params=int(1e8)),
                                              cpu_offload=None,
                                              mixed_precision=mixed_precision,
                                              device_id=device._device)
