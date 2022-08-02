@@ -31,8 +31,8 @@ from composer.datasets.evaluator_hparams import EvaluatorHparams
 from composer.loggers import LoggerDestination, LogLevel
 from composer.loggers.logger_hparams_registry import logger_registry
 from composer.models import (BERTForClassificationHparams, BERTHparams, DeepLabV3Hparams, EfficientNetB0Hparams,
-                             GPT2Hparams, HuggingFaceModel, MnistClassifierHparams, ModelHparams, ResNetCIFARHparams,
-                             ResNetHparams, SSDHparams, TimmHparams, UnetHparams, ViTSmallPatch16Hparams)
+                             GPT2Hparams, MnistClassifierHparams, ModelHparams, ResNetCIFARHparams, ResNetHparams,
+                             SSDHparams, TimmHparams, UnetHparams, ViTSmallPatch16Hparams)
 from composer.models.base import ComposerModel
 from composer.optim import ComposerScheduler
 from composer.optim.optimizer_hparams_registry import OptimizerHparams, optimizer_registry
