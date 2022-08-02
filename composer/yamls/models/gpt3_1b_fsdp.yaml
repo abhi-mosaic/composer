@@ -48,7 +48,7 @@ schedulers:
       t_warmup: 0.01dur
 max_duration: 1ep
 train_batch_size: 512
-grad_accum: 256
+grad_accum: 64
 eval_batch_size: 64
 seed: 17
 dataloader:
@@ -64,6 +64,7 @@ algorithms:
 eval_interval: 1000ba
 precision: bf16
 fsdp: true
+fsdp_min_params: 5e7
 
 callbacks:
   lr_monitor: {}

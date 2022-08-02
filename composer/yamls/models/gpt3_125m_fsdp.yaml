@@ -64,6 +64,7 @@ algorithms:
 eval_interval: 1000ba
 precision: bf16
 fsdp: true
+fsdp_min_params: 5e6
 
 callbacks:
   lr_monitor: {}

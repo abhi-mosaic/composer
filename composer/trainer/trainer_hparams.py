@@ -284,6 +284,7 @@ class TrainerHparams(hp.Hparams):
     model: ModelHparams = hp.auto(Trainer, 'model')
 
     fsdp: bool = hp.optional(doc='Whether to wrap the model with FSDP', default=False)
+    fsdp_min_params: float = hp.optional(doc='Minimum # params for a module to be wrapped in FSDP', default=1e8)
 
     # Shared data
     dataloader: DataLoaderHparams = hp.optional(doc='dataloader hparams', default=DataLoaderHparams())
@@ -460,7 +461,7 @@ class TrainerHparams(hp.Hparams):
             model = FullyShardedDataParallel(model,
                                              sharding_strategy=ShardingStrategy.FULL_SHARD,
                                              auto_wrap_policy=partial(size_based_auto_wrap_policy,
-                                                                      min_num_params=int(1e8)),
+                                                                      min_num_params=int(self.fsdp_min_params)),
                                              cpu_offload=None,
                                              mixed_precision=mixed_precision,
                                              device_id=device._device)
