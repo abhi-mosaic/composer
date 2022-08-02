@@ -465,6 +465,8 @@ class TrainerHparams(hp.Hparams):
                                              mixed_precision=mixed_precision,
                                              device_id=device._device)
 
+        print(model)
+
         # Train dataloader
         train_dataloader = _initialize_dataloader(self.train_dataset, self.train_dataloader_label,
                                                   self.train_batch_size, self.train_subset_num_batches, self.dataloader)
