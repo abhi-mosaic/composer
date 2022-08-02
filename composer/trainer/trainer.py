@@ -1444,9 +1444,10 @@ class Trainer:
 
         self.engine.run_event(Event.FIT_START)
 
-        # surpressing GradScaler warnings as they are always created
+        # suppressing GradScaler warnings as they are always created
         # self._use_grad_scaling() will raise a RuntimeError if grad scaling is not available when it is required
         warnings.filterwarnings(action='ignore', message='torch.cuda.amp.GradScaler')
+        # suppressing FSDP warning when auto grad accum exits the forward pass before completing
         warnings.filterwarnings(action='ignore', message='Forward order differs from that of the first iteration')
 
         self.state.scaler = ClosureGradScaler() if self._use_closures() else GradScaler()
