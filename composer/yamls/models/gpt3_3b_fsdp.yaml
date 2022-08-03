@@ -71,8 +71,8 @@ callbacks:
   speed_monitor:
     window_size: 1
 
-loggers:
-  wandb:
-    project: abhi-fsdp-3B
+# loggers:
+#   wandb:
+#     project: abhi-fsdp-3B
 
-run_name: gpt3-3B-h1-msl-128-fsdp-7e7-pure-fp16-tbs-8192-ga-128-gpus-4
+# run_name: gpt3-3B-h1-msl-128-fsdp-7e7-pure-fp16-tbs-8192-ga-128-gpus-4

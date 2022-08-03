@@ -47,8 +47,8 @@ schedulers:
   - cosine_decay_with_warmup:
       t_warmup: 100ba
 max_duration: 100ba
-train_batch_size: 8192
-grad_accum: 256
+train_batch_size: 16384
+grad_accum: 1024
 eval_batch_size: 64
 seed: 17
 dataloader:
@@ -64,7 +64,7 @@ algorithms:
 eval_interval: 1000ba
 precision: amp
 fsdp: true
-fsdp_min_params: 1e8
+fsdp_min_params: 2e8
 
 callbacks:
   lr_monitor: {}
@@ -75,4 +75,4 @@ callbacks:
 #   wandb:
 #     project: abhi-fsdp-7B
 
-# run_name: gpt3-7B-h1-msl-128-fsdp-1e8-pure-fp16-tbs-8192-ga-256-gpus-4
+# run_name: gpt3-7B-h1-msl-128-fsdp-2e8-pure-fp16-tbs-16384-ga-1024-gpus-4
