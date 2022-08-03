@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional,
 
 import torch
 import yahp as hp
-from torch.distributed.fsdp import FullyShardedDataParallel, MixedPrecision, ShardingStrategy
+from torch.distributed.fsdp import BackwardPrefetch, FullyShardedDataParallel, MixedPrecision, ShardingStrategy
 from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 from torchmetrics import Metric, MetricCollection
 
@@ -452,21 +452,28 @@ class TrainerHparams(hp.Hparams):
 
         # The model
         model = self.model.initialize_object()
+        total_params = sum(p.numel() for p in model.parameters())
 
         # Wrap the model with FSDP
         if self.fsdp:
-            mixed_precision = MixedPrecision(param_dtype=torch.float32,
-                                             reduce_dtype=torch.float32,
-                                             buffer_dtype=torch.float32)
+            # mixed_precision = None
+            mixed_precision = MixedPrecision(
+                param_dtype=torch.float16,
+                reduce_dtype=torch.float16,
+                buffer_dtype=torch.float16,
+            )
+            backward_prefetch = BackwardPrefetch.BACKWARD_POST
             model = FullyShardedDataParallel(model,
                                              sharding_strategy=ShardingStrategy.FULL_SHARD,
                                              auto_wrap_policy=partial(size_based_auto_wrap_policy,
                                                                       min_num_params=int(self.fsdp_min_params)),
                                              cpu_offload=None,
                                              mixed_precision=mixed_precision,
+                                             backward_prefetch=backward_prefetch,
                                              device_id=device._device)
 
         print(model)
+        print(f"Total parameters: {total_params:,}")
 
         # Train dataloader
         train_dataloader = _initialize_dataloader(self.train_dataset, self.train_dataloader_label,

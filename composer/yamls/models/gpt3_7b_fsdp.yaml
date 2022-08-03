@@ -30,14 +30,14 @@ model:
       summary_first_dropout: 0.0
       initializer_range: 0.02
       layer_norm_epsilon: 1.0e-05
-      n_embd: 2048
+      n_embd: 4096
       n_head: 1
-      n_layer: 24
+      n_layer: 32
       n_positions: 128
       use_cache: false
 optimizers:
   decoupled_adamw:
-    lr: 2.0e-4
+    lr: 1.2e-4
     betas:
       - 0.9
       - 0.95
@@ -48,7 +48,7 @@ schedulers:
       t_warmup: 100ba
 max_duration: 100ba
 train_batch_size: 8192
-grad_accum: 64
+grad_accum: 256
 eval_batch_size: 64
 seed: 17
 dataloader:
@@ -64,7 +64,7 @@ algorithms:
 eval_interval: 1000ba
 precision: amp
 fsdp: true
-fsdp_min_params: 5e7
+fsdp_min_params: 1e8
 
 callbacks:
   lr_monitor: {}
@@ -73,6 +73,6 @@ callbacks:
 
 # loggers:
 #   wandb:
-#     project: abhi-fsdp-1B
+#     project: abhi-fsdp-7B
 
-# run_name: gpt3-1B-h1-msl-512-fsdp-5e7-pure-fp16-tbs-8192-ga-64-gpus-4
+# run_name: gpt3-7B-h1-msl-128-fsdp-1e8-pure-fp16-tbs-8192-ga-256-gpus-4
