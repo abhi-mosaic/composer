@@ -5,7 +5,7 @@ train_dataset:
     split: val
     shuffle: true
     tokenizer_name: gpt2
-    max_seq_len: 128
+    max_seq_len: 2048
     group_method: truncate
 
 val_dataset:
@@ -15,7 +15,7 @@ val_dataset:
     split: val
     shuffle: false
     tokenizer_name: gpt2
-    max_seq_len: 128
+    max_seq_len: 2048
     group_method: truncate
 
 model:
@@ -33,7 +33,7 @@ model:
       n_embd: 2048
       n_head: 1
       n_layer: 24
-      n_positions: 128
+      n_positions: 2048
       use_cache: false
 optimizers:
   decoupled_adamw:
@@ -47,8 +47,8 @@ schedulers:
   - cosine_decay_with_warmup:
       t_warmup: 100ba
 max_duration: 100ba
-train_batch_size: 8192
-grad_accum: 16
+train_batch_size: 512
+grad_accum: 32
 eval_batch_size: 64
 seed: 17
 dataloader:
@@ -62,17 +62,21 @@ algorithms:
     clipping_type: norm
     clipping_threshold: 1.0
 eval_interval: 1000ba
+
 precision: bf16
 fsdp: true
 fsdp_min_params: 5e7
+fsdp_sharding_strategy: FULL_SHARD 
 
+log_to_console: true
+console_log_level: BATCH
 callbacks:
   lr_monitor: {}
   speed_monitor:
     window_size: 1
 
-loggers:
-  wandb:
-    project: abhi-fsdp-1B-a100-80gb
+#loggers:
+#  wandb:
+#    project: abhi-fsdp
 
-run_name: gpt3-1B-h1-msl-128-fsdp-5e7-safe-bf16-tbs-8192-ga-16-gpus-8-bkwnone
+run_name: gpt3-1B-h1-msl-2048-fsdp-5e7-safe-bf16-tbs-512-ga-32-gpus-8-40gb

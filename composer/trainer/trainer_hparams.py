@@ -285,6 +285,7 @@ class TrainerHparams(hp.Hparams):
 
     fsdp: bool = hp.optional(doc='Whether to wrap the model with FSDP', default=False)
     fsdp_min_params: float = hp.optional(doc='Minimum # params for a module to be wrapped in FSDP', default=1e8)
+    fsdp_sharding_strategy: str = hp.optional(doc='Minimum # params for a module to be wrapped in FSDP', default='FULL_SHARD')
 
     # Shared data
     dataloader: DataLoaderHparams = hp.optional(doc='dataloader hparams', default=DataLoaderHparams())
@@ -456,15 +457,24 @@ class TrainerHparams(hp.Hparams):
 
         # Wrap the model with FSDP
         if self.fsdp:
-            # mixed_precision = None
+            sharding_map = {
+              'NO_SHARD': ShardingStrategy.NO_SHARD,
+              'SHARD_GRAD_OP': ShardingStrategy.SHARD_GRAD_OP,
+              'FULL_SHARD': ShardingStrategy.FULL_SHARD,
+            }
+            reduce_dtype_map = {
+              Precision.FP32: torch.float32,
+              Precision.AMP: torch.float16,
+              Precision.BF16: torch.bfloat16,
+            } 
             mixed_precision = MixedPrecision(
                 param_dtype=torch.float32,
-                reduce_dtype=torch.bfloat16,
+                reduce_dtype=reduce_dtype_map[self.precision],
                 buffer_dtype=torch.float32,
             )
-            backward_prefetch = None #BackwardPrefetch.BACKWARD_PRE
+            backward_prefetch = BackwardPrefetch.BACKWARD_POST
             model = FullyShardedDataParallel(model,
-                                             sharding_strategy=ShardingStrategy.FULL_SHARD,
+                                             sharding_strategy=sharding_map[self.fsdp_sharding_strategy.upper()],
                                              auto_wrap_policy=partial(size_based_auto_wrap_policy,
                                                                       min_num_params=int(self.fsdp_min_params)),
                                              cpu_offload=None,
