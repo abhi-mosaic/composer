@@ -30,14 +30,14 @@ model:
       summary_first_dropout: 0.0
       initializer_range: 0.02
       layer_norm_epsilon: 1.0e-05
-      n_embd: 2048
+      n_embd: 5140
       n_head: 1
-      n_layer: 24
+      n_layer: 40
       n_positions: 128
       use_cache: false
 optimizers:
   decoupled_adamw:
-    lr: 2.0e-4
+    lr: 1.0e-4
     betas:
       - 0.9
       - 0.95
@@ -47,7 +47,7 @@ schedulers:
   - cosine_decay_with_warmup:
       t_warmup: 100ba
 max_duration: 100ba
-train_batch_size: 8192
+train_batch_size: 512
 grad_accum: 16
 eval_batch_size: 64
 seed: 17
@@ -62,17 +62,20 @@ algorithms:
     clipping_type: norm
     clipping_threshold: 1.0
 eval_interval: 1000ba
-precision: bf16
+precision: amp
 fsdp: true
-fsdp_min_params: 5e7
+fsdp_min_params: 1e8
 
 callbacks:
   lr_monitor: {}
   speed_monitor:
     window_size: 1
 
-loggers:
-  wandb:
-    project: abhi-fsdp-1B-a100-80gb
+log_to_console: true
+console_log_level: BATCH
 
-run_name: gpt3-1B-h1-msl-128-fsdp-5e7-safe-bf16-tbs-8192-ga-16-gpus-8-bkwnone
+#loggers:
+#  wandb:
+#   project: abhi-fsdp-13B
+
+run_name: gpt3-13B-h1-msl-128-fsdp-1e8-pure-fp16-tbs-16384-ga-128-gpus-8-80gb-bkwpre

@@ -2,7 +2,7 @@ train_dataset:
   streaming_c4:
     remote: s3://allenai-c4/mds/1/
     local: /tmp/mds-cache/mds-c4/
-    split: train
+    split: val
     shuffle: true
     tokenizer_name: gpt2
     max_seq_len: 128
@@ -48,7 +48,7 @@ schedulers:
       t_warmup: 100ba
 max_duration: 100ba
 train_batch_size: 16384
-grad_accum: 1024
+grad_accum: 64
 eval_batch_size: 64
 seed: 17
 dataloader:
@@ -71,8 +71,11 @@ callbacks:
   speed_monitor:
     window_size: 1
 
-# loggers:
-#   wandb:
-#     project: abhi-fsdp-7B
+log_to_console: true
+console_log_level: BATCH
 
-# run_name: gpt3-7B-h1-msl-128-fsdp-2e8-pure-fp16-tbs-16384-ga-1024-gpus-4
+loggers:
+  wandb:
+    project: abhi-fsdp-7B
+
+run_name: gpt3-7B-h1-msl-128-fsdp-2e8-pure-fp16-tbs-16384-ga-64-gpus-8-80gb

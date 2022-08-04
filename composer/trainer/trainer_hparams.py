@@ -458,11 +458,11 @@ class TrainerHparams(hp.Hparams):
         if self.fsdp:
             # mixed_precision = None
             mixed_precision = MixedPrecision(
-                param_dtype=torch.float16,
-                reduce_dtype=torch.float16,
-                buffer_dtype=torch.float16,
+                param_dtype=torch.float32,
+                reduce_dtype=torch.bfloat16,
+                buffer_dtype=torch.float32,
             )
-            backward_prefetch = BackwardPrefetch.BACKWARD_POST
+            backward_prefetch = None #BackwardPrefetch.BACKWARD_PRE
             model = FullyShardedDataParallel(model,
                                              sharding_strategy=ShardingStrategy.FULL_SHARD,
                                              auto_wrap_policy=partial(size_based_auto_wrap_policy,
