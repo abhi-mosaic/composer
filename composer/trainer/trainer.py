@@ -1883,7 +1883,7 @@ class Trainer:
 
         use_grad_scaling = self._use_grad_scaling(self.state.precision, self.state.scaler)
 
-        self._spin_dataloaders()
+        # self._spin_dataloaders()
 
         if self.state.timestamp.batch_in_epoch == 0 and self._rng_state is not None:
             # only restore the rng state here if the step in the current epoch is zero.
