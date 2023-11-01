@@ -97,36 +97,43 @@ def _tensor_to_object(tensor, tensor_size):
 
 def all_gather_object_list_hpu(object_list, obj, group=None):
     """Use this only for habana devices, for other devices use all_gather_object.
+
     Function is a modified version of
     https://github.com/pytorch/pytorch/blob/main/torch/distributed/distributed_c10d.py.
     Gathers picklable objects from the whole group into a list. Similar to
     :func:`all_gather`, but Python objects can be passed in. Note that the object
     must be picklable in order to be gathered.
+
     Args:
         object_list (list[Any]): Output list. It should be correctly sized as the
             size of the group for this collective and will contain the output.
         obj (Any): Pickable Python object to be broadcast from current process.
         group (ProcessGroup, optional): The process group to work on. If None,
             the default process group will be used. Default is ``None``.
+
     Returns:
         None. If the calling rank is part of this group, the output of the
         collective will be populated into the input ``object_list``. If the
         calling rank is not part of the group, the passed in ``object_list`` will
         be unmodified.
+
     .. note:: Note that this API differs slightly from the :func:`all_gather`
         collective since it does not provide an ``async_op`` handle and thus
         will be a blocking call.
+
     .. note:: For NCCL-based processed groups, internal tensor representations
         of objects must be moved to the GPU device before communication takes
         place. In this case, the device used is given by
         ``torch.cuda.current_device()`` and it is the user's responsiblity to
         ensure that this is set so that each rank has an individual GPU, via
         ``torch.cuda.set_device()``.
+
     .. warning::
         :func:`all_gather_object` uses ``pickle`` module implicitly, which is
         known to be insecure. It is possible to construct malicious pickle data
         which will execute arbitrary code during unpickling. Only call this
         function with data you trust.
+
     Example::
         >>> # xdoctest: +SKIP("need process group init")
         >>> # Note: Process group initialization omitted on each rank.
