@@ -38,7 +38,7 @@ from composer.core import (Algorithm, AlgorithmPass, Batch, BreakEpochException,
                            Event, Precision, PyTorchScheduler, State, Time, Timestamp, TimeUnit, TrainerMode,
                            ensure_data_spec, ensure_evaluator, ensure_time, get_precision_context,
                            validate_eval_automicrobatching)
-from composer.devices import Device, DeviceCPU, DeviceGPU, DeviceMPS, DeviceTPU
+from composer.devices import Device, DeviceCPU, DeviceGPU, DeviceMPS, DeviceTPU, DeviceNeuron
 from composer.loggers import (ConsoleLogger, Logger, LoggerDestination, MosaicMLLogger, ProgressBarLogger,
                               RemoteUploaderDownloader, WandBLogger)
 from composer.loggers.mosaicml_logger import MOSAICML_ACCESS_TOKEN_ENV_VAR, MOSAICML_PLATFORM_ENV_VAR
@@ -52,12 +52,12 @@ from composer.trainer.dist_strategy import (DDPSyncStrategy, ddp_sync_context, p
                                             set_fsdp_default)
 from composer.utils import (ExportFormat, MissingConditionalImportError, ObjectStore, Transform, checkpoint, dist,
                             ensure_tuple, export_with_logger, extract_hparams, format_name_with_dist, get_device,
-                            get_file, is_tpu_installed, map_collection, maybe_create_object_store_from_uri,
+                            get_file, is_xla_installed, map_collection, maybe_create_object_store_from_uri,
                             maybe_create_remote_uploader_downloader_from_uri, model_eval_mode, parse_uri,
                             reproducibility, using_torch_2)
 from composer.utils.misc import is_model_deepspeed
 
-if is_tpu_installed():
+if is_xla_installed():
     import torch_xla.core.xla_model as xm
     import torch_xla.distributed.parallel_loader as pl
 
@@ -997,7 +997,7 @@ class Trainer:
         # Move the model and optimizers to the device
         if deepspeed_config is None and fsdp_config is None:
             # check if model is already on tpu
-            if isinstance(device, DeviceTPU) and 'xla' not in str(next(model.parameters()).device):
+            if isinstance(device, (DeviceTPU, DeviceNeuron)) and 'xla' not in str(next(model.parameters()).device):
                 raise ValueError(
                     'Use model.to(xm.xla_device()) to set the model to the TPU before providing to the trainer.')
             else:
@@ -1230,7 +1230,7 @@ class Trainer:
         if self._train_data_spec is not None:
             self.state.set_dataloader(self._train_data_spec.dataloader, train_dataloader_label,
                                       train_subset_num_batches)
-            if isinstance(self.state.device, DeviceTPU):
+            if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)):
                 self.state.train_dataloader = pl.MpDeviceLoader(self.state.dataloader, xm.xla_device())
             else:
                 self.state.train_dataloader = self.state.dataloader
@@ -2246,7 +2246,7 @@ class Trainer:
                             if use_grad_scaling:
                                 self.state.scaler.step(optimizer)
                             else:
-                                if isinstance(self.state.device, DeviceTPU):
+                                if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)):
                                     xm.optimizer_step(optimizer, barrier=True)
                                 else:
                                     optimizer.step()
@@ -3047,7 +3047,7 @@ class Trainer:
         if self.state.deepspeed_enabled:
             return False
 
-        if isinstance(self.state.device, DeviceTPU):
+        if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)):
             return False
 
         if self.state.precision != Precision.AMP_FP16:
