@@ -6,7 +6,6 @@ import torch.nn as nn
 from torch.utils.data import IterableDataset, DataLoader
 
 import os
-import torch.distributed as dist
 import composer.utils.dist as composer_dist
 import torch_xla.experimental.pjrt_backend
 import torch_xla.experimental.pjrt as pjrt
@@ -53,10 +52,6 @@ def main():
     msl = 2048
     n_samples = 100
 
-    # dist.init_process_group('xla', init_method='pjrt://')
-    # print ("init dist")
-    # print (os.environ['NODE_RANK'])
-
     dataset = FakeIterableDataset(n_samples, msl, d_model)
     loader = DataLoader(
         dataset,
@@ -67,9 +62,6 @@ def main():
         prefetch_factor=2,
         persistent_workers=True,
     )
-
-    # for batch_idx, batch in enumerate(loader):
-    #     print (batch_idx, batch['inputs'].shape, batch['targets'].shape)
 
     model = MLP(n_layers, d_model)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
