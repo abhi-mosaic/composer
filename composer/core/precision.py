@@ -9,6 +9,7 @@ import textwrap
 from typing import Any, Dict, Generator, Optional, Union
 
 import torch
+import torch_xla.experimental.pjrt as pjrt
 
 from composer.utils import StringEnum
 
@@ -61,6 +62,10 @@ def get_precision_context(precision: Union[str, Precision],
             yield
     elif precision == Precision.AMP_BF16:
         if torch.cuda.is_available():
+            with torch.cuda.amp.autocast(enabled=True, dtype=torch.bfloat16):
+                yield
+        elif pjrt.using_pjrt():
+            torch.cuda.is_bf16_supported = lambda: True
             with torch.cuda.amp.autocast(enabled=True, dtype=torch.bfloat16):
                 yield
         else:

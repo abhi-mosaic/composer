@@ -19,7 +19,7 @@ class FakeIterableDataset(IterableDataset):
 
     def __iter__(self):
         for _ in range (self.n_samples):
-            yield {'inputs': torch.rand((self.msl, self.d_model)), 'targets': torch.ones((self.msl, self.d_model))}
+            yield {'inputs': torch.rand((self.msl, self.d_model), dtype=torch.bfloat16), 'targets': torch.ones((self.msl, self.d_model), dtype=torch.bfloat16)}
 
     def __len__(self):
         return self.n_samples
@@ -32,7 +32,8 @@ class MLP(ComposerModel):
         self.net = nn.Sequential(*[nn.Linear(d_model, d_model) for _ in range(n_layers)])
 
     def forward(self, batch):
-        return self.net(batch['inputs'])
+        outputs = self.net(batch['inputs'])
+        return outputs
 
     def loss(self, outputs, batch):
         targets = batch['targets']

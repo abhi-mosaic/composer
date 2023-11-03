@@ -32,6 +32,7 @@ class DeviceNeuron(Device):
 
     def __init__(self):
         import torch_xla.core.xla_model as xm
+        os.environ["NEURON_CC_FLAGS"] = "--auto-cast=none"
         os.environ['PJRT_DEVICE']='NEURON'
         self._device = xm.xla_device()
 
