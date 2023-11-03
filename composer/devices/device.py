@@ -5,7 +5,7 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Optional
 
 import torch
 import torch.nn
@@ -30,6 +30,7 @@ class Device(Serializable, ABC):
     """
 
     dist_backend: str = ''
+    dist_init_method: Optional[str] = None
     name: str = ''
     _device = None
 

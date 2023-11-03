@@ -26,6 +26,7 @@ class DeviceHPU(Device):
     """
 
     dist_backend = 'hccl'
+    dist_init_method = None
     name = 'hpu'
     _device = torch.device('hpu')
 

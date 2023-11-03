@@ -26,6 +26,7 @@ class DeviceCPU(Device):
     """
 
     dist_backend = 'gloo'
+    dist_init_method = None
     name = 'cpu'
     _device = torch.device('cpu')
 

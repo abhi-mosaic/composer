@@ -9,6 +9,7 @@ from collections import deque
 from typing import Any, Callable, Deque, Dict, Optional, Union
 
 import torch
+import torch_xla.core.xla_model as xm
 
 from composer.core import Callback, State
 from composer.loggers import Logger
@@ -54,6 +55,7 @@ GPU_AVAILABLE_FLOPS = {
         'amp_fp16': 312e12,
         'bf16': 312e12,
         'amp_bf16': 312e12,
+        'int8': 624e12,
     },
     # source: https://images.nvidia.com/content/technologies/volta/pdf/volta-v100-datasheet-update-us-1165301-r5.pdf
     'v100-sxm': {
@@ -83,6 +85,15 @@ GPU_AVAILABLE_FLOPS = {
         'int8': 130e12,
         'int4': 260e12,
     },
+    'NEURON': {
+        'fp32': 190e12,
+        'tf32': 190e12,
+        'fp16': 190e12,
+        'amp_fp16': 190e12,
+        'bf16': 190e12,
+        'amp_bf16': 190e12,
+        'int8': 380e12,
+    },
 }
 
 
@@ -90,25 +101,29 @@ def get_gpu_flops_available(state: State):
     gpu_flops_available = None
 
     # Return 0 if no CUDA device (e.g., when running with CPU only)
-    if not torch.cuda.is_available():
-        return 0
-
-    # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB'
-    device_name = torch.cuda.get_device_name().lower()
-    if 'h100' in device_name and 'hbm3' in device_name:
-        device_name = 'h100-sxm'
-    elif 'h100' in device_name and ('pcie' in device_name or 'hbm2e' in device_name):
-        device_name = 'h100-pcie'
-    elif 'a100' in device_name:
-        device_name = 'a100'
-    elif 'v100-sxm' in device_name:
-        device_name = 'v100-sxm'
-    elif 'v100-pcie' in device_name:
-        device_name = 'v100-pcie'
-    elif 't4' in device_name:
-        device_name = 't4'
+    if torch.cuda.is_available():
+        # torch.cuda.get_device_name() ex output: 'NVIDIA A100-SXM4-40GB'
+        device_name = torch.cuda.get_device_name().lower()
+        if 'h100' in device_name and 'hbm3' in device_name:
+            device_name = 'h100-sxm'
+        elif 'h100' in device_name and ('pcie' in device_name or 'hbm2e' in device_name):
+            device_name = 'h100-pcie'
+        elif 'a100' in device_name:
+            device_name = 'a100'
+        elif 'v100-sxm' in device_name:
+            device_name = 'v100-sxm'
+        elif 'v100-pcie' in device_name:
+            device_name = 'v100-pcie'
+        elif 't4' in device_name:
+            device_name = 't4'
+        else:
+            device_name = None
+    elif xm.xla_device():
+        # TODO: what is the right way of getting trn1 instance name from system ???
+        device_name = xm.xla_device_hw(xm.xla_device())
     else:
-        device_name = None
+        # When running on CPU, return 0 without warning
+        return 0
 
     if device_name is not None:
         try:

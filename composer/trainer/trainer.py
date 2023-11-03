@@ -997,7 +997,7 @@ class Trainer:
         # Move the model and optimizers to the device
         if deepspeed_config is None and fsdp_config is None:
             # check if model is already on tpu
-            if isinstance(device, (DeviceTPU, DeviceNeuron)) and 'xla' not in str(next(model.parameters()).device):
+            if isinstance(device, DeviceTPU) and 'xla' not in str(next(model.parameters()).device): # is this needed?
                 raise ValueError(
                     'Use model.to(xm.xla_device()) to set the model to the TPU before providing to the trainer.')
             else:
@@ -2246,7 +2246,7 @@ class Trainer:
                             if use_grad_scaling:
                                 self.state.scaler.step(optimizer)
                             else:
-                                if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)):
+                                if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)): # is this needed?
                                     xm.optimizer_step(optimizer, barrier=True)
                                 else:
                                     optimizer.step()
@@ -3047,7 +3047,7 @@ class Trainer:
         if self.state.deepspeed_enabled:
             return False
 
-        if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)):
+        if isinstance(self.state.device, DeviceTPU): # is this needed?
             return False
 
         if self.state.precision != Precision.AMP_FP16:

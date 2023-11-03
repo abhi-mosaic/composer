@@ -25,6 +25,7 @@ class DeviceMPS(Device):
     This class takes no arguments.
     """
     dist_backend = ''
+    dist_init_method = None
     name = 'mps'
 
     def __init__(self):

@@ -33,8 +33,10 @@ If none of these environment variables are set, this module will safely assume a
 from __future__ import annotations
 
 import datetime
+import io
 import logging
 import os
+import pickle
 import time
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, List, Optional, Sequence, TypeVar, Union, cast
@@ -46,7 +48,7 @@ import torch_xla.experimental.pjrt as pjrt
 import torch_xla.core.xla_model as xm
 import torch.utils.data
 
-from composer.utils.device import get_device
+from composer.utils.device import get_device, is_hpu_installed
 
 if TYPE_CHECKING:
     from composer.devices import Device
@@ -186,14 +188,14 @@ def _get_distributed_config_var(
         dist_value = int(getattr(dist, fetch_fn_name)())
         # Add XLA based distributed backend configurations
         # TODO: refactor this
-        if env_var == 'WORLD_SIZE' and pjrt.using_pjrt():
-            dist_value = dist.get_world_size()
-            return dist_value
-        elif env_var == 'LOCAL_RANK' and pjrt.using_pjrt():
-            dist_value = xm.get_local_ordinal() #pjrt.get_local_ordinal()
-        elif env_var == 'RANK' and pjrt.using_pjrt():
-            dist_value = xm.get_ordinal()
-            return dist_value
+        # if env_var == 'WORLD_SIZE' and pjrt.using_pjrt():
+        #     dist_value = dist.get_world_size()
+        #     return dist_value
+        # elif env_var == 'LOCAL_RANK' and pjrt.using_pjrt():
+        #     dist_value = xm.get_local_ordinal() #pjrt.get_local_ordinal()
+        # elif env_var == 'RANK' and pjrt.using_pjrt():
+        #     dist_value = xm.get_ordinal()
+        #     return dist_value
 
         if env_var in os.environ:
             env_value = int(os.environ[env_var])
@@ -437,7 +439,10 @@ def all_gather_object(obj: TObj) -> List[TObj]:
     """
     if dist.is_available() and dist.is_initialized():
         obj_gather_list = [None for _ in range(get_world_size())]
-        dist.all_gather_object(obj_gather_list, obj)
+        if is_hpu_installed():
+            all_gather_object_list_hpu(obj_gather_list, obj)
+        else:
+            dist.all_gather_object(obj_gather_list, obj)
         # torch.distributed will replace the None's in obj_gather_list with the gathered objects on rank 0
         # or will just be None on non-rank-0
         return cast(List[TObj], obj_gather_list)
@@ -507,9 +512,7 @@ def initialize_dist(device: Union[str, Device], timeout: float = 300.0):
                            'not available in your installation of PyTorch. Please install or build PyTorch '
                            'with distributed support.')
 
-    if pjrt.using_pjrt():
-        print ('using pjrt')
-    elif dist.is_initialized():
+    if dist.is_initialized():
         if dist.get_backend() != device_obj.dist_backend.lower():
             raise RuntimeError(f'The requested backend ({device_obj.dist_backend}) differs from the backend '
                                f'of the current process group ({dist.get_backend()}). If you '
@@ -545,9 +548,9 @@ def initialize_dist(device: Union[str, Device], timeout: float = 300.0):
     if dist_env_vars_match_defaults:
         # Fill in the remaining single-rank variables
         os.environ.update(dist_env_var_defaults)
-        dist.init_process_group(device_obj.dist_backend, nit_method=device_obj.get('dist_init_method', None), store=dist.HashStore(), world_size=1, rank=0)
+        dist.init_process_group(device_obj.dist_backend, init_method=device_obj.dist_init_method, store=dist.HashStore(), world_size=1, rank=0)
     else:
-        dist.init_process_group(device_obj.dist_backend, init_method=device_obj.get('dist_init_method', None), timeout=timeout_timedelta)
+        dist.init_process_group(device_obj.dist_backend, init_method=device_obj.dist_init_method, timeout=timeout_timedelta)
 
 
 def get_sampler(dataset: torch.utils.data.Dataset, *, drop_last: bool = False, shuffle: bool = False):

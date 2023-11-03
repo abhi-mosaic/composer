@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, TypeVar
-
+import os
 import torch
 
 from composer.devices.device import Device
@@ -22,7 +22,7 @@ T_nnModule = TypeVar('T_nnModule', bound=torch.nn.Module)
 class DeviceNeuron(Device):
     """An extension of :class:`~composer.devices.device.Device` for Neuron devices (Trn, Inf).
 
-    When running on Trn, you need to `export PJRT_DEVICE=NEURON`.
+    When running on Trn, we automatically set `export PJRT_DEVICE=NEURON`.
     More details.
     """
 
@@ -32,11 +32,10 @@ class DeviceNeuron(Device):
 
     def __init__(self):
         import torch_xla.core.xla_model as xm
-
+        os.environ['PJRT_DEVICE']='NEURON'
         self._device = xm.xla_device()
 
     def module_to_device(self, module: T_nnModule) -> T_nnModule:
-
         return module.to(self._device)
 
     def tensor_to_device(self, tensor: torch.Tensor) -> torch.Tensor:
