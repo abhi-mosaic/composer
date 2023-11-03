@@ -43,14 +43,16 @@ class MLP(ComposerModel):
         return 6 * bs * msl * self.n_layers * (self.d_model**2)
 
 def main():
-    global_train_batch_size = 8
+    n_samples = 1000
+    msl = 2048
+
+    global_train_batch_size = 32
     device_train_batch_size = global_train_batch_size // composer_dist.get_world_size()
-    device_train_microbatch_size = 2
+    device_train_microbatch_size = 1
     print (global_train_batch_size, device_train_batch_size, device_train_microbatch_size)
     n_layers = 10
-    d_model = 2048
-    msl = 2048
-    n_samples = 100
+    d_model = 1024
+
 
     dataset = FakeIterableDataset(n_samples, msl, d_model)
     loader = DataLoader(
@@ -58,7 +60,7 @@ def main():
         batch_size=device_train_batch_size,
         drop_last=True,
         num_workers=1,
-        pin_memory=True,
+        pin_memory=False,
         prefetch_factor=2,
         persistent_workers=True,
     )
@@ -66,12 +68,11 @@ def main():
     model = MLP(n_layers, d_model)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-4)
     scheduler = CosineAnnealingWithWarmupScheduler(t_warmup='10ba', alpha_f=0.1)
-    max_duration = '50ba'
+    max_duration = '20ba'
     callbacks = [
-        SpeedMonitor(window_size=10),
+        SpeedMonitor(window_size=5),
     ]
 
-    print ("building trainer")
     trainer = Trainer(
         run_name='mlp',
         device='neuron',
@@ -97,8 +98,6 @@ def main():
         python_log_level='debug',
         dist_timeout=300,
     )
-    print ("Trainer Built")
-
     trainer.fit()
 
 if __name__ == '__main__':
