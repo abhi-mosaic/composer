@@ -321,7 +321,7 @@ def all_reduce(
     if dist.is_available() and dist.is_initialized():
         reduce_op = getattr(dist.ReduceOp, reduce_operation.upper())
         if pjrt.using_pjrt():
-            xm.all_reduce(reduce_operation.lower(), tensor)
+            xm.all_reduce(reduce_operation.lower(), [tensor])
         else:
             dist.all_reduce(tensor, op=reduce_op)
         return

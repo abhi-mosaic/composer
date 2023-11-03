@@ -50,8 +50,8 @@ def main():
     device_train_batch_size = global_train_batch_size // composer_dist.get_world_size()
     device_train_microbatch_size = 1
     print (global_train_batch_size, device_train_batch_size, device_train_microbatch_size)
-    n_layers = 10
-    d_model = 1024
+    n_layers = 5
+    d_model = 2048
 
 
     dataset = FakeIterableDataset(n_samples, msl, d_model)
