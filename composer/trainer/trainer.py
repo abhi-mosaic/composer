@@ -3047,7 +3047,7 @@ class Trainer:
         if self.state.deepspeed_enabled:
             return False
 
-        if isinstance(self.state.device, DeviceTPU): # is this needed?
+        if isinstance(self.state.device, (DeviceTPU, DeviceNeuron)): # is this needed?
             return False
 
         if self.state.precision != Precision.AMP_FP16:
