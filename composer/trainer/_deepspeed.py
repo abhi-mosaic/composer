@@ -134,13 +134,13 @@ def _parse_deepspeed_config(
 
 
 def _convert_fp32_tensor_to_fp16(tensor: torch.Tensor):
-    if tensor.dtype == torch.float32:
+    if isinstance(tensor, torch.Tensor) and tensor.dtype == torch.float32:
         return tensor.half()
     return tensor
 
 
 def _convert_fp32_tensor_to_bf16(tensor: torch.Tensor):
-    if tensor.dtype == torch.float32:
+    if isinstance(tensor, torch.Tensor) and tensor.dtype == torch.float32:
         return tensor.to(torch.bfloat16)
     return tensor
 
