@@ -33,7 +33,7 @@ def map_collection(collection, map_fn):
     if isinstance(collection, (tuple, list)):
         return type(collection)(map_fn(x) for x in collection)
     if isinstance(collection, dict):
-        return {k: map_fn(v) for k, v in collection.items()}
+        return {k: [map_fn(w) for w in v] if isinstance(v, list) else map_fn(v) for k, v in collection.items()}
     return map_fn(collection)
 
 
