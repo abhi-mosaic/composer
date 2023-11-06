@@ -216,7 +216,8 @@ class WandBLogger(LoggerDestination):
         else:
             entity_and_project = [None, None]
         # Share the entity and project across all ranks, so they are available on ranks that did not initialize wandb
-        dist.broadcast_object_list(entity_and_project)
+        if not self._rank_zero_only:
+            dist.broadcast_object_list(entity_and_project)
         self.entity, self.project = entity_and_project
         assert self.entity is not None, 'entity should be defined'
         assert self.project is not None, 'project should be defined'
