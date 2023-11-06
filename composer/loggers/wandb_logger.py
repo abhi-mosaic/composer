@@ -219,8 +219,9 @@ class WandBLogger(LoggerDestination):
         if not self._rank_zero_only:
             dist.broadcast_object_list(entity_and_project)
         self.entity, self.project = entity_and_project
-        assert self.entity is not None, 'entity should be defined'
-        assert self.project is not None, 'project should be defined'
+        if self._enabled:
+            assert self.entity is not None, 'entity should be defined'
+            assert self.project is not None, 'project should be defined'
 
     def upload_file(self, state: State, remote_file_name: str, file_path: pathlib.Path, *, overwrite: bool):
         del overwrite  # unused
