@@ -549,22 +549,22 @@ def load_sharded_checkpoint(
 
         # 3. Optionally load RNG
         rng_state_dicts = reproducibility.get_rng_state()
-        if not load_weights_only:
-            # If we are resuming on more ranks than were used at save time we only want to load in rngs for those ranks
-            num_ranks_that_saved_rng = _get_num_ranks_that_saved_rng(storage_reader.read_metadata())
-            rng_state_dicts_load = {}
-            rng_state_dicts_load['rng'] = rng_state_dicts[:num_ranks_that_saved_rng] if len(
-                rng_state_dicts) > num_ranks_that_saved_rng else rng_state_dicts
-            dist_cp.load_state_dict(
-                state_dict=rng_state_dicts_load,
-                storage_reader=storage_reader,
-                planner=load_planner,
-            )
-            # We also want to append newly generated rng states for the ranks that don't have an rng state to load in
-            # if we are resuming on more ranks than were used at save time.
-            if len(rng_state_dicts) > num_ranks_that_saved_rng:
-                rng_state_dicts_load['rng'].extend(rng_state_dicts[num_ranks_that_saved_rng:])
-            rng_state_dicts = rng_state_dicts_load['rng']
+        # if not load_weights_only:
+        #     # If we are resuming on more ranks than were used at save time we only want to load in rngs for those ranks
+        #     num_ranks_that_saved_rng = _get_num_ranks_that_saved_rng(storage_reader.read_metadata())
+        #     rng_state_dicts_load = {}
+        #     rng_state_dicts_load['rng'] = rng_state_dicts[:num_ranks_that_saved_rng] if len(
+        #         rng_state_dicts) > num_ranks_that_saved_rng else rng_state_dicts
+        #     dist_cp.load_state_dict(
+        #         state_dict=rng_state_dicts_load,
+        #         storage_reader=storage_reader,
+        #         planner=load_planner,
+        #     )
+        #     # We also want to append newly generated rng states for the ranks that don't have an rng state to load in
+        #     # if we are resuming on more ranks than were used at save time.
+        #     if len(rng_state_dicts) > num_ranks_that_saved_rng:
+        #         rng_state_dicts_load['rng'].extend(rng_state_dicts[num_ranks_that_saved_rng:])
+        #     rng_state_dicts = rng_state_dicts_load['rng']
 
     return rng_state_dicts
 
